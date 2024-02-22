@@ -2,28 +2,37 @@ package com.lenolnmuniz.certification.modules.students.use_cases;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+import com.lenolnmuniz.certification.modules.questions.entities.AlternativesEntity;
 import com.lenolnmuniz.certification.modules.questions.entities.QuestionEntity;
 import com.lenolnmuniz.certification.modules.questions.repositories.QuestionRepository;
 import com.lenolnmuniz.certification.modules.students.dto.StudentCertificationAnswerDTO;
-import com.lenolnmuniz.certification.modules.students.repositories.StudentRepository;
 
+@Service
 public class StudentCertificationAnswersUseCase {
-    
-    private final StudentRepository studentRepository;
-    private final QuestionRepository questionRepository;
 
-    public StudentCertificationAnswersUseCase(StudentRepository studentRepository, QuestionRepository questionRepository){
-        this.studentRepository = studentRepository;
+    private final QuestionRepository questionRepository;
+    
+    public StudentCertificationAnswersUseCase(
+        QuestionRepository questionRepository){
         this.questionRepository = questionRepository;
+        
     }
         
-    public void execute(StudentCertificationAnswerDTO dto) throws Exception {
-        var student = studentRepository.findByEmail(dto.getEmail());
-         
-        if(student.isEmpty()) {
-            throw new Exception("E-mail do estudante incorreto.");
-        }
-    }
+    public StudentCertificationAnswerDTO execute(StudentCertificationAnswerDTO dto) {
+        List<QuestionEntity> questionsEntity = questionRepository.findByTechnology(dto.getTechnology());
+    
+        dto.getQuestionsAnswers().stream().forEach(questionAnswer -> {
+            var question = questionsEntity.stream().filter(qst -> qst.getId().equals(questionAnswer.getQuestionID())).findFirst().get();
+            var findCorrectAlternative = question.getAlternatives().stream().filter(AlternativesEntity::isCorrect).findFirst().get();
+            if(findCorrectAlternative.getId().equals(questionAnswer.getAlternativeID())) questionAnswer.setCorrect(true);
+        
+        
+        });
 
+        
+        return dto;
+    }
 
 }

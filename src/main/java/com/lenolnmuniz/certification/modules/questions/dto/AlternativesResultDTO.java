@@ -15,4 +15,5 @@ public class AlternativesResultDTO {
 
     private UUID id;
     private String description;
+    // private boolean isCorrect;
 }
