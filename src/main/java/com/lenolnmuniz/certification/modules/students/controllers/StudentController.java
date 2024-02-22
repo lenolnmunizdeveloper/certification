@@ -34,7 +34,7 @@ public class StudentController {
     }
 
     @PostMapping("/certification/answer")
-    public StudentCertificationAnswerDTO certificationAnswer(@RequestBody StudentCertificationAnswerDTO studentCertificationAnswerDTO) {
+    public CertificationStudentEntity certificationAnswer(@RequestBody StudentCertificationAnswerDTO studentCertificationAnswerDTO) {
         return studentCertificationAnswersUseCase.execute(studentCertificationAnswerDTO);
     }
 
