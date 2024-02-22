@@ -3,6 +3,7 @@ package com.lenolnmuniz.certification.modules.students.use_cases;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import com.lenolnmuniz.certification.modules.questions.entities.AlternativesEnti
 import com.lenolnmuniz.certification.modules.questions.entities.QuestionEntity;
 import com.lenolnmuniz.certification.modules.questions.repositories.QuestionRepository;
 import com.lenolnmuniz.certification.modules.students.dto.StudentCertificationAnswerDTO;
+import com.lenolnmuniz.certification.modules.students.dto.VerifyHasCertificationDTO;
 
 @Service
 public class StudentCertificationAnswersUseCase {
@@ -22,24 +24,38 @@ public class StudentCertificationAnswersUseCase {
     private final QuestionRepository questionRepository;
     private final StudentRepository studentRepository;
     private final CertificationStudentRepository certificationStudentRepository;
+    private final VerifyIfHasCertificationUseCase verifyIfHasCertificationUseCase;
 
     public StudentCertificationAnswersUseCase(
         QuestionRepository questionRepository, 
         StudentRepository studentRepository,
-        CertificationStudentRepository certificationStudentRepository){
+        CertificationStudentRepository certificationStudentRepository,
+        VerifyIfHasCertificationUseCase verifyIfHasCertificationUseCase){
         this.questionRepository = questionRepository;
         this.studentRepository = studentRepository;
         this.certificationStudentRepository = certificationStudentRepository;
+        this.verifyIfHasCertificationUseCase = verifyIfHasCertificationUseCase;
     }
+
+   
         
-    public CertificationStudentEntity execute(StudentCertificationAnswerDTO dto) {
+    public CertificationStudentEntity execute(StudentCertificationAnswerDTO dto) throws Exception {
         List<QuestionEntity> questionsEntity = questionRepository.findByTechnology(dto.getTechnology());
         List<AnswersCertificationsEntity> answersCertifications = new ArrayList<>();
-    
+        
+        AtomicInteger correctAnswers = new AtomicInteger(0);
+        
+        var hasCertification = this.verifyIfHasCertificationUseCase.execute(new VerifyHasCertificationDTO(dto.getEmail(), dto.getTechnology()));
+        
+        if(hasCertification) throw new Exception("Você já tirou sua certificação.");
+        
         dto.getQuestionsAnswers().stream().forEach(questionAnswer -> {
             var question = questionsEntity.stream().filter(qst -> qst.getId().equals(questionAnswer.getQuestionID())).findFirst().get();
             var findCorrectAlternative = question.getAlternatives().stream().filter(AlternativesEntity::isCorrect).findFirst().get();
-            if(findCorrectAlternative.getId().equals(questionAnswer.getAlternativeID())) questionAnswer.setCorrect(true);
+            if(findCorrectAlternative.getId().equals(questionAnswer.getAlternativeID())) {
+                questionAnswer.setCorrect(true);
+                correctAnswers.incrementAndGet();
+            }
         
             // Add answers certification
             var answersCertificationsEntity = AnswersCertificationsEntity.builder()
@@ -67,6 +83,7 @@ public class StudentCertificationAnswersUseCase {
         CertificationStudentEntity.builder()
         .technology(dto.getTechnology())
         .studentId(studentID)
+        .grade(correctAnswers.get())
         .build();
 
         var certificationStudentCreated = certificationStudentRepository.save(certificationStudentEntity);

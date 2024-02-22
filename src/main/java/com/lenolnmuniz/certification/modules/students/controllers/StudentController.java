@@ -4,11 +4,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.lenolnmuniz.certification.modules.students.dto.StudentCertificationAnswerDTO;
 import com.lenolnmuniz.certification.modules.students.dto.VerifyHasCertificationDTO;
-import com.lenolnmuniz.certification.modules.students.entities.CertificationStudentEntity;
 import com.lenolnmuniz.certification.modules.students.use_cases.StudentCertificationAnswersUseCase;
 import com.lenolnmuniz.certification.modules.students.use_cases.VerifyIfHasCertificationUseCase;
 
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -34,8 +34,13 @@ public class StudentController {
     }
 
     @PostMapping("/certification/answer")
-    public CertificationStudentEntity certificationAnswer(@RequestBody StudentCertificationAnswerDTO studentCertificationAnswerDTO) {
-        return studentCertificationAnswersUseCase.execute(studentCertificationAnswerDTO);
+    public ResponseEntity<Object> certificationAnswer(@RequestBody StudentCertificationAnswerDTO studentCertificationAnswerDTO) {
+        try {
+            var result = studentCertificationAnswersUseCase.execute(studentCertificationAnswerDTO);
+            return ResponseEntity.ok().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
 }
